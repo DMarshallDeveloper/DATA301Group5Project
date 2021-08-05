@@ -120,10 +120,10 @@ carvar <- c("SEQN", "CDQ001", "CDQ010")
 cardiohealth <- cardiohealth[carvar]
 
 #Join Datasets
-demo_blood <- left_join(BloodPressure,demographics, by="SEQN")
-joined <- left_join(BodyMeasures2017,demo_blood, by="SEQN")
-joinedLDL <- left_join(joined, LDL2017, by = "SEQN")
-joined2 <- left_join(joinedLDL, cardiohealth, by = "SEQN")
+demo_blood <- full_join(BloodPressure,demographics, by="SEQN")
+joined <- full_join(BodyMeasures2017,demo_blood, by="SEQN")
+joinedLDL <- full_join(joined, LDL2017, by = "SEQN")
+joined2 <- full_join(joinedLDL, cardiohealth, by = "SEQN")
 joined2
 
 #number

@@ -65,6 +65,7 @@ table(LDL2017$LBDLDL)
 #"BMXBMI" BMI
 #"BMXWAIST" waist circumference
 
+
 BodyVariables <- c("SEQN","BMXBMI","BMXWT","BMXHT")
 BodyMeasures2017 <- BodyMeasures2017[BodyVariables]
 names(BodyMeasures2017)[names(BodyMeasures2017) == 'BMXWT'] <- "WEIGHT"
@@ -89,9 +90,10 @@ rem <- c("SEQN","SYSTOLIC")
 BloodPressure <- BloodPressure[rem]
 
 #Demographic data
-myvars <- c("SEQN","RIAGENDR", "RIDAGEYR","WTMEC2YR")
+myvars <- c("SEQN","RIAGENDR", "RIDAGEYR")
 demographics <- demographics[myvars]
-
+names(demographics)[names(demographics) == 'RIAGENDR'] <- "GENDER"
+names(demographics)[names(demographics) == 'RIDAGEYR'] <- "AGE_YEAR"
 
 #LDL data set, subest the ones with mg/dL
 #LBXTR is trygicerides
@@ -105,8 +107,9 @@ LDL2017$LDL <- rowMeans(LDL2017[ , c(3:5)], na.rm=TRUE)
 #remove LBDLDL, LBDLDLM, LBDLDLN
 re <- c("SEQN", "LBXTR", "LDL")
 LDL2017 <- LDL2017[re]
-LDL2017
+
 #LDL2017$LDL <- mice(LDL2017$LDL, method = "norm.predict", m = 1)
+names(LDL2017)[names(LDL2017) == 'LBXTR'] <- "TRYGLICERIDES"
 
 #Number of missing values in LDL and triglycerides
 frequency <- colSums(is.na(LDL2017))
@@ -115,53 +118,37 @@ pander(cbind(frequency, proportion))
 
 
 
-#cardio health
-carvar <- c("SEQN", "CDQ001", "CDQ010")
-cardiohealth <- cardiohealth[carvar]
-
 #Join Datasets
 demo_blood <- full_join(BloodPressure,demographics, by="SEQN")
 joined <- full_join(BodyMeasures2017,demo_blood, by="SEQN")
-joinedLDL <- full_join(joined, LDL2017, by = "SEQN")
-joined2 <- full_join(joinedLDL, cardiohealth, by = "SEQN")
-joined2
+joined2 <- full_join(joined, LDL2017, by = "SEQN")
 
 #number
 frequency <- colSums(is.na(joined2))
-proportion <- (colSums(is.na(joined2)))/8704
+proportion <- (colSums(is.na(joined2)))/9254
 pander(cbind(frequency, proportion))
-
-summary(joined2)
 
 # Imputation
-#joined3 <- mice::complete(joined3, "long")
-joined2 <- simple.impute.data.frame(joined2)
-joined2
+Data <- mice(joined2,m=5,maxit=50,meth='pmm',seed=500)
+joined3 <- complete(Data)
 
 #check again if there are missing values
-frequency <- colSums(is.na(joined2))
-proportion <- (colSums(is.na(joined2)))/8704
+frequency <- colSums(is.na(joined3))
+proportion <- (colSums(is.na(joined3)))/9254
 pander(cbind(frequency, proportion))
 
-#remove the sequence number
+#remove the sequence number and gender
+drops <- c("SEQN","GENDER","SYSTOLIC")
+joined3 <- joined3[ , !(names(joined3) %in% drops)]
 
-pairs.panels(select(joined2,LDL,BMI,WEIGHT,SYSTOLIC),
+pairs.panels(joined3,
              method = "pearson",
              hist.col = "#00AFBB",
              density = TRUE,
              ellipses = TRUE)
 
-plot(select(joined2,LDL, BMI,HEIGHT,WEIGHT))
 
-ggcorrplot(cor(joined2[,-1]),
-           method = "circle",
-           hc.order = TRUE,
-           type = "lower")
-
-
-
-#eh.model <- glm(BMI~BPXSY3+RIAGENDR+RIDAGEYR+WTMEC2YR+LBDHDD, data = joined3)
-eh.model <- glm(BMI~., data = joined2)
+eh.model <- glm(BMI~., data = joined3)
 summary(eh.model)
 
 

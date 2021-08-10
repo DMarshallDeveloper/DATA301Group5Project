@@ -47,19 +47,6 @@ cardiohealth <- read_xpt("~/Desktop/VUW/2021/Trimester 2/DATA301/Project/Cardio 
                          .name_repair = "unique")
 
 
-
-
-
-
-
-
-
-LDL2017$LBXTR <- ifelse(LDL2017$LBXTR >= 200, 1, 0)
-LDL2017$LBDLDL <- ifelse(LDL2017$LBDLDL >= 160, 1, 0)
-
-table(LDL2017$LBXTR)
-table(LDL2017$LBDLDL)
-
 #"BMXWT" is weight
 #"BMXHT" is standing height
 #"BMXBMI" BMI
@@ -132,10 +119,11 @@ pander(cbind(frequency, proportion))
 Data <- mice(joined2,m=5,maxit=50,meth='pmm',seed=500)
 joined3 <- complete(Data)
 
-#check again if there are missing values
-frequency <- colSums(is.na(joined3))
-proportion <- (colSums(is.na(joined3)))/9254
-pander(cbind(frequency, proportion))
+joined3$TRYGLICERIDES_BINARY <- ifelse(joined3$TRYGLICERIDES >= 200, 1, 0)
+joined3$LDL_BINARY <- ifelse(joined3$LDL >= 160, 1, 0)
+joined3$HIGH_INCIDENCE <- with(joined3, ifelse(TRYGLICERIDES_BINARY==1 & LDL_BINARY==1, 1, 0))
+
+table(joined3$HIGH_INCIDENCE)
 
 #remove the sequence number and gender
 drops <- c("SEQN","GENDER","SYSTOLIC")

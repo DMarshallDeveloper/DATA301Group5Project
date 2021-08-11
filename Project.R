@@ -125,9 +125,6 @@ joined3$HIGH_INCIDENCE <- with(joined3, ifelse(TRYGLICERIDES_BINARY==1 & LDL_BIN
 
 table(joined3$HIGH_INCIDENCE)
 
-#remove the sequence number and gender
-# drops <- c("SEQN","GENDER","SYSTOLIC")
-# joined3 <- joined3[ , !(names(joined3) %in% drops)]
 
 ggpairs(joined3, columns = c("TRYGLICERIDES", "LDL", "HIGHCHANCE"))
 

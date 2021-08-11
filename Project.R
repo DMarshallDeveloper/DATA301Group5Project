@@ -126,18 +126,86 @@ joined3$HIGH_INCIDENCE <- with(joined3, ifelse(TRYGLICERIDES_BINARY==1 & LDL_BIN
 table(joined3$HIGH_INCIDENCE)
 
 #remove the sequence number and gender
-drops <- c("SEQN","GENDER","SYSTOLIC")
-joined3 <- joined3[ , !(names(joined3) %in% drops)]
+# drops <- c("SEQN","GENDER","SYSTOLIC")
+# joined3 <- joined3[ , !(names(joined3) %in% drops)]
 
-pairs.panels(joined3,
-             method = "pearson",
-             hist.col = "#00AFBB",
-             density = TRUE,
-             ellipses = TRUE)
+ggpairs(joined3, columns = c("TRYGLICERIDES", "LDL", "HIGHCHANCE"))
 
+ggpairs(joined3, columns = c("T_BINARY", "LDL_BINARY", "HIGHCHANCE"))
+
+ggpairs(joined3, columns = c("GENDER","AGE_YEAR","TRYGLICERIDES", "LDL", "HIGHCHANCE"))
+
+ggpairs(joined3, columns = c("GENDER","AGE_YEAR","T_BINARY", "LDL_BINARY", "HIGHCHANCE"))
+
+Binomi <- glm(HIGHCHANCE~T_BINARY+LDL_BINARY+GENDER+AGE_YEAR, data = joined3, family = "binomial")
+summary(Binomi)
 
 eh.model <- glm(BMI~., data = joined3)
 summary(eh.model)
+
+eh.model2 <- glm(HIGHCHANCE~., data = joined3)
+summary(eh.model2)
+
+data <- joined3 %>%
+  select(T_BINARY,LDL_BINARY, HIGHCHANCE)
+
+ggcorrplot(cor(data),
+           method = "circle",
+           hc.order = TRUE,
+           type = "lower")
+
+
+counts <- table(joined3$T_BINARY, joined3$LDL_BINARY)
+
+
+library(ggpubr)
+ggscatter(joined3, x = "TRYGLICERIDES", y = "LDL", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          alpha=I(0.02)) +
+  scale_y_log10() +
+  scale_x_log10()
+
+
+ggplot(joined3, aes(TRYGLICERIDES, LDL),
+       cor.coef = TRUE, cor.method = "pearson") +
+  geom_point(alpha=0.9, aes(color = HIGHCHANCE)) +
+  geom_smooth() +
+  scale_y_log10() +
+  scale_x_log10()
+
+ggplot(joined3, aes(T_BINARY, LDL_BINARY),
+       cor.coef = TRUE, cor.method = "pearson") +
+  geom_point(alpha=0.9, aes(color = HIGHCHANCE)) +
+  geom_smooth() +
+  scale_y_log10() +
+  scale_x_log10()
+
+
+
+ggscatter(joined3, x = "TRYGLICERIDES", y = "LDL",
+   color = "black", shape = 21, size = 3, # Points color, shape and size
+   add = "loess",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE, # Add confidence interval
+   cor.coef = TRUE, # Add correlation coefficient. see ?stat_cor
+   cor.coeff.args = list(method = "pearson", label.x = 3, label.sep = "\n")
+   )
+
+ggscatter(joined3, x = "TRYGLICERIDES", y = "LDL",
+   color = "black", shape = 21, size = 3, # Points color, shape and size
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE, # Add confidence interval
+   cor.coef = TRUE, # Add correlation coefficient. see ?stat_cor
+   cor.coeff.args = list(method = "pearson", label.x = 3, label.sep = "\n")
+   )
+
+
+# TRYGLICERIDES
+ggqqplot(joined3$TRYGLICERIDES, ylab = "Tryglicerides")
+# LDL
+ggqqplot(joined3$LDL, ylab = "LDL")
 
 
 

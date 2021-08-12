@@ -123,25 +123,35 @@ joined3$TRYGLICERIDES_BINARY <- ifelse(joined3$TRYGLICERIDES >= 200, 1, 0)
 joined3$LDL_BINARY <- ifelse(joined3$LDL >= 160, 1, 0)
 joined3$HIGH_INCIDENCE <- with(joined3, ifelse(TRYGLICERIDES_BINARY==1 & LDL_BINARY==1, 1, 0))
 
-table(joined3$HIGH_INCIDENCE)
+table(joined3$T_BINARY)
+table(joined3$LDL_BINARY)
+table(joined3$HIGHCHANCE)
 
 
-ggpairs(joined3, columns = c("TRYGLICERIDES", "LDL", "HIGHCHANCE"))
+
+library(stats)
+library(gridExtra)
+
+ggpairs(joined3, columns = c("TRIGLYCERIDES", "LDL", "HIGHCHANCE"))
 
 ggpairs(joined3, columns = c("T_BINARY", "LDL_BINARY", "HIGHCHANCE"))
 
-ggpairs(joined3, columns = c("GENDER","AGE_YEAR","TRYGLICERIDES", "LDL", "HIGHCHANCE"))
+ggpairs(joined3, columns = c("GENDER","AGE_YEAR","TRIGLYCERIDES", "LDL", "HIGHCHANCE"))
 
 ggpairs(joined3, columns = c("GENDER","AGE_YEAR","T_BINARY", "LDL_BINARY", "HIGHCHANCE"))
 
 Binomi <- glm(HIGHCHANCE~T_BINARY+LDL_BINARY+GENDER+AGE_YEAR, data = joined3, family = "binomial")
 summary(Binomi)
 
-eh.model <- glm(BMI~., data = joined3)
+eh.model <- glm(HIGHCHANCE~., data = joined3)
 summary(eh.model)
 
-eh.model2 <- glm(HIGHCHANCE~., data = joined3)
+eh.model2 <- glm(HIGHCHANCE~T_BINARY + LDL_BINARY + TRIGLYCERIDES + LDL + AGE_YEAR + BMI + HEIGHT + WEIGHT, data = joined3)
 summary(eh.model2)
+
+eh.model3 <- glm(HIGHCHANCE~., data = joined3)
+summary(eh.model3)
+
 
 data <- joined3 %>%
   select(T_BINARY,LDL_BINARY, HIGHCHANCE)
@@ -156,31 +166,41 @@ counts <- table(joined3$T_BINARY, joined3$LDL_BINARY)
 
 
 library(ggpubr)
-ggscatter(joined3, x = "TRYGLICERIDES", y = "LDL", 
+ggscatter(joined3, x = "TRIGLYCERIDES", y = "LDL", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "pearson",
           alpha=I(0.02)) +
   scale_y_log10() +
   scale_x_log10()
 
-
-ggplot(joined3, aes(TRYGLICERIDES, LDL),
+ggplot(joined3, aes(TRIGLYCERIDES, LDL),
        cor.coef = TRUE, cor.method = "pearson") +
   geom_point(alpha=0.9, aes(color = HIGHCHANCE)) +
   geom_smooth() +
   scale_y_log10() +
   scale_x_log10()
 
-ggplot(joined3, aes(T_BINARY, LDL_BINARY),
+ggplot(joined3, aes(TRIGLYCERIDES, LDL),
+       cor.coef = TRUE, cor.method = "pearson") +
+  geom_point(alpha=0.9, aes(color = HIGHCHANCE)) +
+  geom_smooth()
+
+plot1 <- ggplot(joined3, aes(TRIGLYCERIDES, LDL),
        cor.coef = TRUE, cor.method = "pearson") +
   geom_point(alpha=0.9, aes(color = HIGHCHANCE)) +
   geom_smooth() +
   scale_y_log10() +
   scale_x_log10()
 
+plot2 <- ggplot(joined3, aes(TRIGLYCERIDES, LDL),
+       cor.coef = TRUE, cor.method = "pearson") +
+  geom_point(alpha=0.9, aes(color = HIGHCHANCE)) +
+  geom_smooth()
+
+grid.arrange(plot1, plot2, nrow=2)
 
 
-ggscatter(joined3, x = "TRYGLICERIDES", y = "LDL",
+ggscatter(joined3, x = "TRIGLYCERIDES", y = "LDL",
    color = "black", shape = 21, size = 3, # Points color, shape and size
    add = "loess",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
@@ -189,7 +209,7 @@ ggscatter(joined3, x = "TRYGLICERIDES", y = "LDL",
    cor.coeff.args = list(method = "pearson", label.x = 3, label.sep = "\n")
    )
 
-ggscatter(joined3, x = "TRYGLICERIDES", y = "LDL",
+ggscatter(joined3, x = "TRIGLYCERIDES", y = "LDL",
    color = "black", shape = 21, size = 3, # Points color, shape and size
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
@@ -200,14 +220,11 @@ ggscatter(joined3, x = "TRYGLICERIDES", y = "LDL",
 
 
 # TRYGLICERIDES
-ggqqplot(joined3$TRYGLICERIDES, ylab = "Tryglicerides")
+ggqqplot(joined3$TRIGLYCERIDES, ylab = "Triglycerides")
 # LDL
 ggqqplot(joined3$LDL, ylab = "LDL")
 
-
-
-
-
+ggqqplot(joined3$LDL, ylab = "HIGHCHANCE")
 
 
 

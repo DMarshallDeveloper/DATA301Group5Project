@@ -10,37 +10,37 @@ library(useful)
 library(mice)
 library(ggcorrplot)
 
-LDL2017 <- read_xpt("~/Desktop/VUW/2021/Trimester 2/DATA301/Project/LDL_Trigy.XPT",
+LDL2017 <- read_xpt("LDL_Trigy.XPT",
                     col_select = NULL,
                     skip = 0,
                     n_max = Inf,
                     .name_repair = "unique")
 LDL2017
-BodyMeasures2017 <- read_xpt("~/Desktop/VUW/2021/Trimester 2/DATA301/Project/Body_Measures.XPT",
+BodyMeasures2017 <- read_xpt("Body_Measures.XPT",
                              col_select = NULL,
                              skip = 0,
                              n_max = Inf,
                              .name_repair = "unique")
 
-TotalCholestrol <- read_xpt("~/Desktop/VUW/2021/Trimester 2/DATA301/Project/Total_Cholestrol.XPT",
+TotalCholestrol <- read_xpt("Total_Cholestrol.XPT",
                             col_select = NULL,
                             skip = 0,
                             n_max = Inf,
                             .name_repair = "unique")
 
-BloodPressure <- read_xpt("~/Desktop/VUW/2021/Trimester 2/DATA301/Project/Blood_Pressure.XPT",
+BloodPressure <- read_xpt("Blood_Pressure.XPT",
                           col_select = NULL,
                           skip = 0,
                           n_max = Inf,
                           .name_repair = "unique")
 
-demographics <- read_xpt("~/Desktop/VUW/2021/Trimester 2/DATA301/Project/Demo_pop.XPT",
+demographics <- read_xpt("Demo_pop.XPT",
                          col_select = NULL,
                          skip = 0,
                          n_max = Inf,
                          .name_repair = "unique")
 
-cardiohealth <- read_xpt("~/Desktop/VUW/2021/Trimester 2/DATA301/Project/Cardio Health.XPT",
+cardiohealth <- read_xpt("Cardio Health.XPT",
                          col_select = NULL,
                          skip = 0,
                          n_max = Inf,

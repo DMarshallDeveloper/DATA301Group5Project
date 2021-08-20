@@ -127,45 +127,73 @@ table(joined3$T_BINARY)
 table(joined3$LDL_BINARY)
 table(joined3$HIGHCHANCE)
 
-
+joined3$GENDER <- ifelse(joined3$GENDER==1,"MALE","FEMALE")
 
 library(stats)
 library(gridExtra)
 
+library(vcd)
+
+joined3 %>%
+  ggplot(aes(x=AGE_YEAR,y=LDL,color=GENDER))+
+  geom_point(alpha=0.001)+xlab("Age") +geom_smooth()+
+  ylab("LDL")+
+  guides(fill = guide_legend(title = "Gender"))
+
 ggpairs(joined3, columns = c("TRIGLYCERIDES", "LDL", "HIGHCHANCE"))
 
-ggpairs(joined3, columns = c("T_BINARY", "LDL_BINARY", "HIGHCHANCE"))
 
-ggpairs(joined3, columns = c("GENDER","AGE_YEAR","TRIGLYCERIDES", "LDL", "HIGHCHANCE"))
+ggpairs(joined3, columns = c("T_BINARY", "LDL_BINARY", "HIGHCHANCE"),
+        diag_panel = pairs_diagonal_mosaic(offset_varnames=-2.5),
+        upper_panel_args = list(shade=TRUE),
+        lower_panel_args = list(shade=TRUE))
 
-ggpairs(joined3, columns = c("GENDER","AGE_YEAR","T_BINARY", "LDL_BINARY", "HIGHCHANCE"))
+p <- joined3[,c("T_BINARY", "LDL_BINARY", "HIGHCHANCE")]
+pairs(table(p),
+      diag_panel = pairs_diagonal_mosaic(offset_varnames=-3),
+      upper_panel_args = list(shade=TRUE),
+      lower_panel_args = list(shade=TRUE))
 
-Binomi <- glm(HIGHCHANCE~T_BINARY+LDL_BINARY+GENDER+AGE_YEAR, data = joined3, family = "binomial")
-summary(Binomi)
+ggplot(joined3, 
+       aes(x = GENDER, 
+           y = HIGHCHANCE)) +
+  geom_violin(fill = "cornflowerblue") +
+  geom_boxplot(width = .2, 
+               fill = "orange",
+               outlier.color = "orange",
+               outlier.size = 2) + 
+  labs(title = "Salary distribution by rank")
 
+# glm is used to fit generalized linear models, specified by giving a symbolic description of the linear predictor and a description of the error distribution.
 eh.model <- glm(HIGHCHANCE~., data = joined3)
 summary(eh.model)
+
+high <- glm(HIGHCHANCE~BMI+WEIGHT+HEIGHT+TRIGLYCERIDES+CDQ010+T_BINARY+LDL_BINARY,data = joined3)
+summary(high)
 
 eh.model2 <- glm(HIGHCHANCE~T_BINARY + LDL_BINARY + TRIGLYCERIDES + LDL + AGE_YEAR + BMI + HEIGHT + WEIGHT, data = joined3)
 summary(eh.model2)
 
-eh.model3 <- glm(HIGHCHANCE~., data = joined3)
-summary(eh.model3)
 
 
-data <- joined3 %>%
-  select(T_BINARY,LDL_BINARY, HIGHCHANCE)
+# graphs
+corre <- joined3[,c("BMI","WEIGHT","HEIGHT","TRIGLYCERIDES")]
+pairs(corre, pch = 19)
 
-ggcorrplot(cor(data),
-           method = "circle",
-           hc.order = TRUE,
-           type = "lower")
+pairs.panels(corre, 
+             method = "pearson", # correlation method
+             hist.col = "#00AFBB",
+             density = TRUE,  # show density plots
+             ellipses = TRUE # show correlation ellipses
+             )
 
 
 counts <- table(joined3$T_BINARY, joined3$LDL_BINARY)
 
 
 library(ggpubr)
+
+#Correlation between Triglycerides vs LDL, together with LDL
 ggscatter(joined3, x = "TRIGLYCERIDES", y = "LDL", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "pearson",
@@ -173,17 +201,20 @@ ggscatter(joined3, x = "TRIGLYCERIDES", y = "LDL",
   scale_y_log10() +
   scale_x_log10()
 
-ggplot(joined3, aes(TRIGLYCERIDES, LDL),
-       cor.coef = TRUE, cor.method = "pearson") +
-  geom_point(alpha=0.9, aes(color = HIGHCHANCE)) +
-  geom_smooth() +
-  scale_y_log10() +
-  scale_x_log10()
+# LDL vs AGE_YEAR
+a <- ggscatter(joined3, x = "AGE_YEAR", y = "LDL", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          alpha=I(0.005))
 
-ggplot(joined3, aes(TRIGLYCERIDES, LDL),
-       cor.coef = TRUE, cor.method = "pearson") +
-  geom_point(alpha=0.9, aes(color = HIGHCHANCE)) +
-  geom_smooth()
+b <- joined3 %>%
+  ggplot(aes(x=AGE_YEAR,y=LDL,color=GENDER))+
+  geom_point(alpha=0.001)+xlab("Age") +geom_smooth()+
+  ylab("LDL")+
+  guides(fill = guide_legend(title = "Gender"))
+
+grid.arrange(a, b, ncol=2)
+
 
 plot1 <- ggplot(joined3, aes(TRIGLYCERIDES, LDL),
        cor.coef = TRUE, cor.method = "pearson") +
@@ -221,13 +252,6 @@ ggscatter(joined3, x = "TRIGLYCERIDES", y = "LDL",
 
 # TRYGLICERIDES
 ggqqplot(joined3$TRIGLYCERIDES, ylab = "Triglycerides")
-# LDL
 ggqqplot(joined3$LDL, ylab = "LDL")
-
-ggqqplot(joined3$LDL, ylab = "HIGHCHANCE")
-
-
-
-
-
-
+ggqqplot(joined3$BMI, ylab = "BMI")
+ggqqplot(joined3$SYSTOLIC, ylab = "Systolic Blood Pressure")

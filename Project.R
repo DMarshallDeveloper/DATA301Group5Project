@@ -119,101 +119,53 @@ pander(cbind(frequency, proportion))
 Data <- mice(joined2,m=5,maxit=50,meth='pmm',seed=500)
 joined3 <- complete(Data)
 
-joined3$TRYGLICERIDES_BINARY <- ifelse(joined3$TRYGLICERIDES >= 200, 1, 0)
-joined3$LDL_BINARY <- ifelse(joined3$LDL >= 160, 1, 0)
-joined3$HIGH_INCIDENCE <- with(joined3, ifelse(TRYGLICERIDES_BINARY==1 & LDL_BINARY==1, 1, 0))
+joined3$T_BINARY <- ifelse(joined3$TRIGLYCERIDES >= 500, 3,
+                           ifelse(joined3$TRIGLYCERIDES >= 200, 2,
+                                  ifelse(joined3$TRIGLYCERIDES >= 150,1,0)))
+joined3$LDL_BINARY <- ifelse(joined3$LDL >= 190, 3,
+                             ifelse(joined3$LDL >= 160, 2,
+                                  ifelse(joined3$LDL >= 130,1,0)))
+joined3$HIGHCHANCE <- with(joined3,
+                               ifelse(T_BINARY==1 &
+                                        LDL_BINARY==1, 1,0))
 
-table(joined3$T_BINARY)
-table(joined3$LDL_BINARY)
-table(joined3$HIGHCHANCE)
+joined3$OBESITY <- ifelse(joined3$BMI >= 30, 1,0)
+joined3$SYSTOLIC <- ifelse(joined3$SYSTOLIC >= 120, 1, 0)
 
 joined3$GENDER <- ifelse(joined3$GENDER==1,"MALE","FEMALE")
+drops <- c("SEQN","BMI","WEIGHT","HEIGHT","TRIGLYCERIDES","LDL")
+joined4 <- joined3[, !(names(joined3) %in% drops)]
+head(joined4)
+
 
 library(stats)
 library(gridExtra)
 
 library(vcd)
 
-joined3 %>%
-  ggplot(aes(x=AGE_YEAR,y=LDL,color=GENDER))+
-  geom_point(alpha=0.001)+xlab("Age") +geom_smooth()+
-  ylab("LDL")+
-  guides(fill = guide_legend(title = "Gender"))
+joined4$GENDER <- ifelse(joined4$GENDER==1,"MALE","FEMALE")
+joined4$GENDER <- as.factor(joined4$GENDER)
+joined4$SHORTBREATH <- as.factor(joined4$SHORTBREATH)
+joined4$CHESTPAIN <- as.factor(joined4$CHESTPAIN)
+
 
 ggpairs(joined3, columns = c("TRIGLYCERIDES", "LDL", "HIGHCHANCE"))
 
-
-ggpairs(joined3, columns = c("T_BINARY", "LDL_BINARY", "HIGHCHANCE"),
-        diag_panel = pairs_diagonal_mosaic(offset_varnames=-2.5),
-        upper_panel_args = list(shade=TRUE),
-        lower_panel_args = list(shade=TRUE))
-
-p <- joined3[,c("T_BINARY", "LDL_BINARY", "HIGHCHANCE")]
-pairs(table(p),
-      diag_panel = pairs_diagonal_mosaic(offset_varnames=-3),
-      upper_panel_args = list(shade=TRUE),
-      lower_panel_args = list(shade=TRUE))
-
-ggplot(joined3, 
-       aes(x = GENDER, 
-           y = HIGHCHANCE)) +
-  geom_violin(fill = "cornflowerblue") +
-  geom_boxplot(width = .2, 
-               fill = "orange",
-               outlier.color = "orange",
-               outlier.size = 2) + 
-  labs(title = "Salary distribution by rank")
-
-# glm is used to fit generalized linear models, specified by giving a symbolic description of the linear predictor and a description of the error distribution.
-eh.model <- glm(HIGHCHANCE~., data = joined3)
-summary(eh.model)
-
-high <- glm(HIGHCHANCE~BMI+WEIGHT+HEIGHT+TRIGLYCERIDES+CDQ010+T_BINARY+LDL_BINARY,data = joined3)
-summary(high)
-
-eh.model2 <- glm(HIGHCHANCE~T_BINARY + LDL_BINARY + TRIGLYCERIDES + LDL + AGE_YEAR + BMI + HEIGHT + WEIGHT, data = joined3)
-summary(eh.model2)
-
-
-
-# graphs
-corre <- joined3[,c("BMI","WEIGHT","HEIGHT","TRIGLYCERIDES")]
-pairs(corre, pch = 19)
-
-pairs.panels(corre, 
-             method = "pearson", # correlation method
-             hist.col = "#00AFBB",
-             density = TRUE,  # show density plots
-             ellipses = TRUE # show correlation ellipses
-             )
-
-
-counts <- table(joined3$T_BINARY, joined3$LDL_BINARY)
-
-
-library(ggpubr)
-
-#Correlation between Triglycerides vs LDL, together with LDL
-ggscatter(joined3, x = "TRIGLYCERIDES", y = "LDL", 
-          add = "reg.line", conf.int = TRUE, 
-          cor.coef = TRUE, cor.method = "pearson",
-          alpha=I(0.02)) +
+plot3 <- ggplot(joined3, aes(BMI, WEIGHT),
+       cor.coef = TRUE, cor.method = "pearson") +
+  geom_point(alpha=0.9, aes(color = HIGHCHANCE),size=0.5) +
+  geom_smooth() +
   scale_y_log10() +
   scale_x_log10()
 
-# LDL vs AGE_YEAR
-a <- ggscatter(joined3, x = "AGE_YEAR", y = "LDL", 
-          add = "reg.line", conf.int = TRUE, 
-          cor.coef = TRUE, cor.method = "pearson",
-          alpha=I(0.005))
+plot4 <- ggplot(joined3, aes(BMI, WEIGHT),
+       cor.coef = TRUE, cor.method = "pearson") +
+  geom_point(alpha=0.9, aes(color = HIGHCHANCE), size=0.5) +
+  geom_smooth()
 
-b <- joined3 %>%
-  ggplot(aes(x=AGE_YEAR,y=LDL,color=GENDER))+
-  geom_point(alpha=0.001)+xlab("Age") +geom_smooth()+
-  ylab("LDL")+
-  guides(fill = guide_legend(title = "Gender"))
+grid.arrange(plot3, plot4, nrow=2)
 
-grid.arrange(a, b, ncol=2)
+
 
 
 plot1 <- ggplot(joined3, aes(TRIGLYCERIDES, LDL),
@@ -231,27 +183,230 @@ plot2 <- ggplot(joined3, aes(TRIGLYCERIDES, LDL),
 grid.arrange(plot1, plot2, nrow=2)
 
 
-ggscatter(joined3, x = "TRIGLYCERIDES", y = "LDL",
-   color = "black", shape = 21, size = 3, # Points color, shape and size
-   add = "loess",  # Add regressin line
-   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
-   conf.int = TRUE, # Add confidence interval
-   cor.coef = TRUE, # Add correlation coefficient. see ?stat_cor
-   cor.coeff.args = list(method = "pearson", label.x = 3, label.sep = "\n")
-   )
-
-ggscatter(joined3, x = "TRIGLYCERIDES", y = "LDL",
-   color = "black", shape = 21, size = 3, # Points color, shape and size
-   add = "reg.line",  # Add regressin line
-   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
-   conf.int = TRUE, # Add confidence interval
-   cor.coef = TRUE, # Add correlation coefficient. see ?stat_cor
-   cor.coeff.args = list(method = "pearson", label.x = 3, label.sep = "\n")
-   )
+ggscatter(joined3, x = "TRIGLYCERIDES", y = "LDL", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          alpha=I(0.02)) +
+  scale_y_log10() +
+  scale_x_log10()
 
 
-# TRYGLICERIDES
-ggqqplot(joined3$TRIGLYCERIDES, ylab = "Triglycerides")
-ggqqplot(joined3$LDL, ylab = "LDL")
-ggqqplot(joined3$BMI, ylab = "BMI")
-ggqqplot(joined3$SYSTOLIC, ylab = "Systolic Blood Pressure")
+a <- ggscatter(joined3, x = "AGE_YEAR", y = "LDL", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          alpha=I(0.005))
+
+b <- joined3 %>%
+  ggplot(aes(x=AGE_YEAR,y=LDL,color=GENDER))+
+  geom_point(alpha=0.001)+xlab("Age") +geom_smooth()+
+  ylab("LDL")+
+  guides(fill = guide_legend(title = "Gender"))
+
+grid.arrange(a, b, ncol=2)
+
+
+corre <- joined3[,c("BMI","WEIGHT","HEIGHT","TRIGLYCERIDES")]
+pairs(corre, pch = 19)
+
+rela <- joined3[,c("BMI","WEIGHT","HEIGHT","TRIGLYCERIDES",
+                   "SHORTBREATH","T_BINARY","LDL_BINARY","HIGHCHANCE")]
+pairs.panels(rela, 
+             method = "pearson", # correlation method
+             hist.col = "#00AFBB",
+             density = TRUE,  # show density plots
+             ellipses = TRUE # show correlation ellipses
+             )
+
+
+# for detailed analysis report
+
+# To help you guys a little bit
+
+# split the data
+set.seed(3)
+
+#70% of the sample size
+smp_size <- floor(0.75 * nrow(joined4))
+train_ind <- sample(seq_len(nrow(joined4)), size = smp_size)
+train <- joined4[train_ind, ]
+test <- joined4[-train_ind, ]
+
+
+# Fit the model
+model1 <- glm(HIGHCHANCE ~ .,family=binomial(link="logit"),data = train)
+summary(model1) #AIC is 998.63
+
+stepAIC(model1) # Step:  992.5 lowest AIC
+# Call:
+# lm(formula = HIGHCHANCE ~ BMI + WEIGHT + HEIGHT + TRIGLYCERIDES + 
+#     SHORTBREATH + T_BINARY + LDL_BINARY, data = train)
+
+
+# Then
+#by choosing the best AIC, fit the model again
+model2 <- glm(formula = HIGHCHANCE ~ GENDER + AGE_YEAR + AGE_MONTH + SHORTBREATH + 
+    T_BINARY + LDL_BINARY, family = binomial(link = "logit"), 
+    data = train)
+
+
+#Compare 2 models
+anova(model1, model2, test='Chisq')
+
+glance(model1) %>%
+  dplyr::select(adj.r.squared, sigma, AIC, BIC, p.value)
+glance(model2) %>%
+  dplyr::select(adj.r.squared, sigma, AIC, BIC, p.value)
+
+
+
+
+
+
+#take the columns from the ones with lowest AIC and put it in the new data frame
+
+sample2 <- joined4[, c("GENDER","AGE_YEAR","AGE_MONTH","SHORTBREATH","T_BINARY","LDL_BINARY","HIGHCHANCE")]
+
+# split the model again
+
+set.seed(3)
+
+#70% of the sample size
+smp_size <- floor(0.75 * nrow(sample2))
+train_ind <- sample(seq_len(nrow(sample2)), size = smp_size)
+train2 <- sample2[train_ind, ]
+test2 <- sample2[-train_ind, ]
+
+model2 <- glm(HIGHCHANCE ~ GENDER + AGE_YEAR + AGE_MONTH + SHORTBREATH + T_BINARY + LDL_BINARY, data = train2)
+summary(model2)
+
+
+# sigma(model2)/mean(sample2$HIGHCHANCE)
+
+# Check the AUC
+p.hat <- predict(model2, newdata = test2, type = "response")
+
+sort(unique(factor(test2$HIGHCHANCE)))
+
+
+pred <- prediction(p.hat,test2$HIGHCHANCE==c("0","1"))
+rocc <- performance(pred,measure = "tpr", x.measure = "fpr")
+
+auc <- performance(pred,measure = "auc")@y.values[[1]]
+auc
+
+# Plot the AUC Graph
+plot(rocc)
+points(c(0,1), c(0,1),type = "l", lty=2,col=2,lwd=1.5)
+text(x=0.25,y=0.65,paste("AUC = ",round(auc,3),sep= ""))
+
+
+
+
+
+
+
+
+##### RUN THESE CHUNK (UNTIL THE END) IN ONE GO
+
+library(boot)
+library(foreach)
+library(parallel)
+library(doParallel)
+require(foreach)
+
+#######################################
+total.error.rate <- function(r, p){
+  mean(r != as.numeric(p > 0.5))
+}
+area.under.curve <- function(r, p=0){
+  require(ROCR)
+  pred <- prediction(p, r)
+  auc <- performance(pred, measure = "auc")
+  auc@y.values[[1]]
+}
+
+variable.indices <- c(1,2,3,4,5,6,7)
+
+all.comb <- expand.grid(as.data.frame(matrix(rep(0 : 1, length(variable.indices)),
+                                             nrow = 2)))[-1,]
+
+
+nrep <- 20
+
+nclust <- makeCluster(detectCores() * 0.90)
+registerDoParallel(nclust)
+# Set random number generator seed for replicability of results.
+set.seed(1)
+# View CPU run time for processes up until this point.
+before <- proc.time()
+
+######################
+## Total error rate ##
+######################
+
+
+error.rate.parallel <- foreach(i = 1 : nrep, .combine = "rbind", .packages = "boot") %:%
+  foreach(j = 1 : nrow(all.comb), .combine = "c") %dopar%
+  {
+    logistic.regression.model <-glm(as.formula(paste("HIGHCHANCE~",
+                                                     paste(names(sample2)[variable.indices[
+                                                       all.comb[j,] == 1]], collapse = " + "))),
+                                    data = sample2, family = "binomial")
+    return(cv.glm(sample2, logistic.regression.model,
+                  cost = total.error.rate, K = 10)$delta[1])
+  }
+AUC.parallel <-
+  foreach(i = 1 : nrep, .combine = "rbind", .packages = "boot") %:%
+    foreach(j = 1 : nrow(all.comb), .combine = "c") %dopar%
+    {
+      logistic.regression.model <-
+        glm(as.formula(paste("HIGHCHANCE~",
+                         paste(names(sample2)[variable.indices[
+                           all.comb[j,] == 1]], collapse = " + "))),
+          data = sample2, family = "binomial")
+      return(cv.glm(sample2, logistic.regression.model,
+                cost = area.under.curve, K = 10)$delta[1])
+}
+
+
+# Shut down cores.
+stopCluster(nclust)
+
+######################
+## Total error rate ##
+######################
+# View error rates according to model.
+
+boxplot(error.rate.parallel ~ matrix(rep(1 : nrow(all.comb), each = nrep),
+                                     nrow = nrep),
+        xlab = "Model", ylab = "Error rate")
+
+# View all models within one SE of the best model.
+best.models.error.rate <-
+  (1 : nrow(all.comb))[apply(error.rate.parallel, 2, mean) <=
+                         min(apply(error.rate.parallel, 2, mean)
+                             +apply(error.rate.parallel, 2, sd))]
+
+for(i in 1 : length(best.models.error.rate))
+  {
+  cat(paste("Model ", i, ":\n"))
+  print(names(sample2)[variable.indices[all.comb[
+    best.models.error.rate[i], ] == 1]]) # Variable names
+  print(apply(error.rate.parallel, 2, mean)[best.models.error.rate[i]]) # Error rate
+  cat("\n")
+  }
+
+boxplot(AUC.parallel ~ matrix(rep(1 : nrow(all.comb), each = nrep),
+                              nrow = nrep), xlab = "Model", ylab = "AUC")
+# View all models within one SE of the best model.
+best.models.AUC <- (1 : nrow(all.comb))[apply(AUC.parallel, 2, mean) >=
+                                          max(apply(AUC.parallel, 2, mean)
+                                              -apply(AUC.parallel, 2, sd))]
+for(i in 1 : length(best.models.AUC))
+{
+    cat(paste("Model ", i, ":\n"))
+    print(names(sample2)[variable.indices[all.comb[
+      best.models.AUC[i], ] == 1]]) # Variable names
+    print(apply(AUC.parallel, 2, mean)[best.models.AUC[i]]) # AUC
+    cat("\n")
+}

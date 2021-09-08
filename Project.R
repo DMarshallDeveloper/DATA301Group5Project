@@ -10,6 +10,7 @@ library(useful)
 library(mice)
 library(ggcorrplot)
 
+# When reading the data sets, make sure the path is correct.
 LDL2017 <- read_xpt("LDL_Trigy.XPT",
                     col_select = NULL,
                     skip = 0,

@@ -281,9 +281,13 @@ model2 <- glm(HIGHCHANCE ~ GENDER + AGE_YEAR + AGE_MONTH + SHORTBREATH + T_BINAR
 summary(model2)
 
 
-# sigma(model2)/mean(sample2$HIGHCHANCE)
 
-# Check the AUC
+
+
+
+
+################# Accuracy and its graph
+
 p.hat <- predict(model2, newdata = test2, type = "response")
 
 sort(unique(factor(test2$HIGHCHANCE)))
@@ -300,14 +304,14 @@ plot(rocc)
 points(c(0,1), c(0,1),type = "l", lty=2,col=2,lwd=1.5)
 text(x=0.25,y=0.65,paste("AUC = ",round(auc,3),sep= ""))
 
+#################
 
 
 
 
 
 
-
-##### RUN THESE CHUNK (UNTIL THE END) IN ONE GO, will take about 10-30 minutes (depend on how many cores in ones machine)
+############### RUN THESE CHUNK (UNTIL THE END) IN ONE GO, will take about 10-30 minutes (depend on how many cores in ones machine)
 
 library(boot)
 library(foreach)
@@ -411,3 +415,4 @@ for(i in 1 : length(best.models.AUC))
     print(apply(AUC.parallel, 2, mean)[best.models.AUC[i]]) # AUC
     cat("\n")
 }
+########################

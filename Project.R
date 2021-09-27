@@ -221,100 +221,111 @@ pairs.panels(rela,
 
 # for detailed analysis report
 
-# To help you guys a little bit
 
-# split the data
-set.seed(3)
+library(pander)
+library(ape)
+library(lmtest)
+library(car)
+library(naniar)
+model1 <- glm(HIGHCHANCE ~ .,family=binomial(link="logit"),data = joined4)
+summary(model1)
 
-#70% of the sample size
-smp_size <- floor(0.75 * nrow(joined4))
-train_ind <- sample(seq_len(nrow(joined4)), size = smp_size)
-train <- joined4[train_ind, ]
-test <- joined4[-train_ind, ]
+pander(summary(model1))
 
+exp(model1$coefficients)
+exp(confint(model1))
 
-# Fit the model
-model1 <- glm(HIGHCHANCE ~ .,family=binomial(link="logit"),data = train)
-summary(model1) #AIC is 998.63
-
-stepAIC(model1) # Step:  992.5 lowest AIC
-# Call:
-# lm(formula = HIGHCHANCE ~ BMI + WEIGHT + HEIGHT + TRIGLYCERIDES + 
-#     SHORTBREATH + T_BINARY + LDL_BINARY, data = train)
+######################################
+# Assumptions
+# Cook's distance
+plot(model1, which = 4, id.n = 3)
 
 
-# Then
-#by choosing the best AIC, fit the model again
-model2 <- glm(formula = HIGHCHANCE ~ GENDER + AGE_YEAR + AGE_MONTH + SHORTBREATH + 
+library(broom)
+model.data <- augment(model1) %>%
+  mutate(index = 1:n())
+
+model.data %>% top_n(3, .cooksd)
+
+
+
+######################################
+# Standardised Residuals
+ggplot(model.data, aes(index, .std.resid)) +
+  geom_point(aes(color = HIGHCHANCE), alpha = .5) +
+  theme_bw()
+
+
+######################################
+# VIF
+pander(round(vif(model1),3))
+
+
+
+######################################
+# AIC, BIC and Stepwise Selection
+# forward selection for models based on the specified predictors
+
+forwardselection <- stepAIC(glm(HIGHCHANCE~1, family = binomial(link="logit"),data = joined4),
+                            scope = list(upper = as.formula(paste("~", paste(names(joined4)[names(joined4)!="HIGHCHANCE"],collapse = " + "))), lower = ~1), direction ="forward", trace = FALSE)
+
+pander(forwardselection$anova, caption = "Steps taken by forward selection in predictors to the model.")
+
+
+# backward selection for models based on the specified predictors
+backwardselection <- stepAIC(glm(as.formula(paste("HIGHCHANCE ~",paste(names(joined4)[names(joined4)!="HIGHCHANCE"],collapse = " + "))), family = binomial(link="logit"),data = joined4),scope = list(upper = as.formula(paste("~", paste(names(joined4)[names(joined4)!="HIGHCHANCE"],collapse = " + "))), lower = ~1), direction ="backward", trace = FALSE)
+
+
+pander(backwardselection$anova, caption = "Steps taken by backward selection in predictors to the model.")
+
+# StepAIC
+stepAIC(model1)
+
+# StepBIC
+step(model1,k=log(nrow(joined4)))
+
+
+
+#choosing the best AIC (Lowest AIC)
+model2 <- glm(formula = HIGHCHANCE ~ GENDER + CHESTPAIN + 
     T_BINARY + LDL_BINARY, family = binomial(link = "logit"), 
-    data = train)
-
+    data = joined4)
 
 #Compare 2 models
 anova(model1, model2, test='Chisq')
 
-glance(model1) %>%
-  dplyr::select(adj.r.squared, sigma, AIC, BIC, p.value)
-glance(model2) %>%
-  dplyr::select(adj.r.squared, sigma, AIC, BIC, p.value)
 
-
-
-
-
-
-#take the columns from the ones with lowest AIC and put it in the new data frame
-
-sample2 <- joined4[, c("GENDER","AGE_YEAR","AGE_MONTH","SHORTBREATH","T_BINARY","LDL_BINARY","HIGHCHANCE")]
-
-# split the model again
+# AUC (AREA UNDER CURVE)
+library(ROCR)
 
 set.seed(3)
-
 #70% of the sample size
-smp_size <- floor(0.75 * nrow(sample2))
-train_ind <- sample(seq_len(nrow(sample2)), size = smp_size)
-train2 <- sample2[train_ind, ]
-test2 <- sample2[-train_ind, ]
+smp_size <- floor(0.75 * nrow(joined4))
+train_ind <- sample(seq_len(nrow(joined4)), size = smp_size)
+train2 <- joined4[train_ind, ]
+test2 <- joined4[-train_ind, ]
 
-model2 <- glm(HIGHCHANCE ~ GENDER + AGE_YEAR + AGE_MONTH + SHORTBREATH + T_BINARY + LDL_BINARY, data = train2)
+# model2 <- glm(HIGHCHANCE ~ GENDER + AGE_YEAR + CHESTPAIN + T_BINARY + LDL_BINARY, data = joined4)
+model2 <- glm(HIGHCHANCE ~., data = joined4)
 summary(model2)
 
-
-
-
-
-
-
-################# Accuracy and its graph
-
 p.hat <- predict(model2, newdata = test2, type = "response")
-
 sort(unique(factor(test2$HIGHCHANCE)))
-
-
 pred <- prediction(p.hat,test2$HIGHCHANCE==c("0","1"))
 rocc <- performance(pred,measure = "tpr", x.measure = "fpr")
-
+rocc
 auc <- performance(pred,measure = "auc")@y.values[[1]]
-auc
 
-# Plot the AUC Graph
+print(paste0("Full model AUC: ", auc))
 plot(rocc)
 points(c(0,1), c(0,1),type = "l", lty=2,col=2,lwd=1.5)
 text(x=0.25,y=0.65,paste("AUC = ",round(auc,3),sep= ""))
 
-#################
 
 
 
 
-
-
-############### RUN THESE CHUNK (UNTIL THE END) IN ONE GO, will take about 10-30 minutes (depend on how many cores in ones machine)
-
-############### this works ONLY on categorical predictor output, which is in our case, the HIGHCHANCE variable.
-
+# RUN ALL BELOW IN ONE GO
 library(boot)
 library(foreach)
 library(parallel)
@@ -332,7 +343,7 @@ area.under.curve <- function(r, p=0){
   auc@y.values[[1]]
 }
 
-variable.indices <- c(1,2,3,4,5,6,7)
+variable.indices <- c(1,2,3,4,5,6,7,8)
 
 all.comb <- expand.grid(as.data.frame(matrix(rep(0 : 1, length(variable.indices)),
                                              nrow = 2)))[-1,]
@@ -356,10 +367,10 @@ error.rate.parallel <- foreach(i = 1 : nrep, .combine = "rbind", .packages = "bo
   foreach(j = 1 : nrow(all.comb), .combine = "c") %dopar%
   {
     logistic.regression.model <-glm(as.formula(paste("HIGHCHANCE~",
-                                                     paste(names(sample2)[variable.indices[
+                                                     paste(names(joined4)[variable.indices[
                                                        all.comb[j,] == 1]], collapse = " + "))),
-                                    data = sample2, family = "binomial")
-    return(cv.glm(sample2, logistic.regression.model,
+                                    data = joined4, family = "binomial")
+    return(cv.glm(joined4, logistic.regression.model,
                   cost = total.error.rate, K = 10)$delta[1])
   }
 AUC.parallel <-
@@ -368,10 +379,10 @@ AUC.parallel <-
     {
       logistic.regression.model <-
         glm(as.formula(paste("HIGHCHANCE~",
-                         paste(names(sample2)[variable.indices[
+                         paste(names(joined4)[variable.indices[
                            all.comb[j,] == 1]], collapse = " + "))),
-          data = sample2, family = "binomial")
-      return(cv.glm(sample2, logistic.regression.model,
+          data = joined4, family = "binomial")
+      return(cv.glm(joined4, logistic.regression.model,
                 cost = area.under.curve, K = 10)$delta[1])
 }
 
@@ -397,7 +408,7 @@ best.models.error.rate <-
 for(i in 1 : length(best.models.error.rate))
   {
   cat(paste("Model ", i, ":\n"))
-  print(names(sample2)[variable.indices[all.comb[
+  print(names(joined4)[variable.indices[all.comb[
     best.models.error.rate[i], ] == 1]]) # Variable names
   print(apply(error.rate.parallel, 2, mean)[best.models.error.rate[i]]) # Error rate
   cat("\n")
@@ -409,12 +420,15 @@ boxplot(AUC.parallel ~ matrix(rep(1 : nrow(all.comb), each = nrep),
 best.models.AUC <- (1 : nrow(all.comb))[apply(AUC.parallel, 2, mean) >=
                                           max(apply(AUC.parallel, 2, mean)
                                               -apply(AUC.parallel, 2, sd))]
-for(i in 1 : length(best.models.AUC))
-{
+for(i in 1 : length(best.models.AUC)){
+  
     cat(paste("Model ", i, ":\n"))
-    print(names(sample2)[variable.indices[all.comb[
+    print(names(joined4)[variable.indices[all.comb[
       best.models.AUC[i], ] == 1]]) # Variable names
     print(apply(AUC.parallel, 2, mean)[best.models.AUC[i]]) # AUC
     cat("\n")
 }
-########################
+#############################
+
+
+

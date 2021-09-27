@@ -219,21 +219,20 @@ pairs.panels(rela,
              )
 
 
+
+
 # for detailed analysis report
-
-
 library(pander)
 library(ape)
 library(lmtest)
 library(car)
 library(naniar)
+library(broom)
+library(ROCR)
+
+# Fit full model
 model1 <- glm(HIGHCHANCE ~ .,family=binomial(link="logit"),data = joined4)
 summary(model1)
-
-pander(summary(model1))
-
-exp(model1$coefficients)
-exp(confint(model1))
 
 ######################################
 # Assumptions
@@ -241,7 +240,7 @@ exp(confint(model1))
 plot(model1, which = 4, id.n = 3)
 
 
-library(broom)
+
 model.data <- augment(model1) %>%
   mutate(index = 1:n())
 
@@ -262,16 +261,16 @@ pander(vif(model1))
 
 
 # AUC (AREA UNDER CURVE)
-library(ROCR)
 
 set.seed(3)
+
 #70% of the sample size
 smp_size <- floor(0.75 * nrow(joined4))
 train_ind <- sample(seq_len(nrow(joined4)), size = smp_size)
 train2 <- joined4[train_ind, ]
 test2 <- joined4[-train_ind, ]
 
-# model2 <- glm(HIGHCHANCE ~ GENDER + AGE_YEAR + CHESTPAIN + T_BINARY + LDL_BINARY, data = joined4)
+
 model2 <- glm(HIGHCHANCE ~., data = joined4)
 summary(model2)
 

@@ -232,7 +232,7 @@ library(ROCR)
 
 # Fit full model
 model1 <- glm(HIGHCHANCE ~ .,family=binomial(link="logit"),data = joined4)
-summary(model1)
+pander(summary(model1))
 
 ######################################
 # Assumptions
@@ -260,6 +260,7 @@ ggplot(model.data, aes(index, .std.resid)) +
 pander(vif(model1))
 
 
+######################################
 # AUC (AREA UNDER CURVE)
 
 set.seed(3)
